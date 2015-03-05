@@ -8,13 +8,13 @@ esort是一个分布式的erlang 排序服务器，向游戏提供按字段排�
 假设游戏有一个跨服的活动，按房间分配玩家（每个房间约100~200人），活动开始后玩家进入房间需要显示一个排行榜（比如显示活动积分的前十名），假设DB的结构如下：
 
 CREATE TABLE IF NOT EXISTS `t_worldboat_info`(  
-        uid                 int(10) unsigned not null comment '玩家的uid',  
-        serverid            int(10) unsigned not null comment '玩家的服务器id',  
-        name                varchar(16) not null comment '用户名字',  
-        level              	int(10) unsigned not null comment '玩家等级',  
-        score               int(10) unsigned not null comment '玩家积分',  
-        time                int(10) unsigned not null comment '玩家获得积分的时间(unix时间戳)',  
-        primary key(uid,serverid)  
+        >>>>uid                 int(10) unsigned not null comment '玩家的uid',  
+        >>>>serverid            int(10) unsigned not null comment '玩家的服务器id',  
+        >>>>name                varchar(16) not null comment '用户名字',  
+        >>>>level              	int(10) unsigned not null comment '玩家等级',  
+        >>>>score               int(10) unsigned not null comment '玩家积分',  
+        >>>>time                int(10) unsigned not null comment '玩家获得积分的时间(unix时间戳)',  
+        >>>>primary key(uid,serverid)  
 )engine = InnoDb default charset utf8;  
 
 注意，score 只是用来排序，活动已结束就没用了  
