@@ -113,8 +113,11 @@ esort的架构分为两个部分：
 目前该工程只在centos 6.3下测试通过，其他平台暂未测试,且需要php环境（我用的5.3.8）。
 
 1、先安装erlang环境，最简单的办法是去erlang官网下载源码（目前为17.4）：
+
    http://www.erlang.org/download/otp_src_17.4.tar.gz,解压之后：
+
    ./config
+
    sudo make install
    
 2、把esort的代码check out 下来，进入代码目录，然后执行 make 即可生成工程
