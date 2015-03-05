@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS `t_worldboat_info`(
         time                int(10) unsigned not null comment '玩家获得积分的时间(unix时间戳)',
 
         primary key(uid,serverid)
-
 )engine = InnoDb default charset utf8;
 
 注意，score 只是用来排序，活动已结束就没用了
