@@ -175,4 +175,13 @@ class proxy
 	    return $ret[0];
     }
 
+    function __destruct()
+    {
+
+		if ($this->socket)
+		{
+			@socket_close ( $this->socket );
+			$this->socket = null;
+		}
+    }
 }
