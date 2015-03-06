@@ -7,51 +7,57 @@ esort是一个分布式的erlang 排序服务器，向游戏提供按字段排�
 ###问题背景
 假设游戏有一个跨服的活动，按房间分配玩家（每个房间约100~200人），活动开始后玩家进入房间需要显示一个排行榜（比如显示活动积分的前十名），假设DB的结构如下：
 
-CREATE TABLE IF NOT EXISTS `t_worldboat_info`(  
-        >>>>uid                 int(10) unsigned not null comment '玩家的uid',  
-        >>>>serverid            int(10) unsigned not null comment '玩家的服务器id',  
-        >>>>name                varchar(16) not null comment '用户名字',  
-        >>>>level              	int(10) unsigned not null comment '玩家等级',  
-        >>>>score               int(10) unsigned not null comment '玩家积分',  
-        >>>>time                int(10) unsigned not null comment '玩家获得积分的时间(unix时间戳)',  
-        >>>>primary key(uid,serverid)  
-)engine = InnoDb default charset utf8;  
+```javascript
+CREATE TABLE IF NOT EXISTS `t_worldboat_info`(
+        uid       int(10) unsigned not null comment '玩家的uid',
+        serverid  int(10) unsigned not null comment '玩家的服务器id',
+        name      varchar(16) not null comment '用户名字',
+        level     int(10) unsigned not null comment '玩家等级',
+        score     int(10) unsigned not null comment '玩家积分',
+        time      int(10) unsigned not null comment '玩家获得积分的时间(unix时间戳)',
+        primary key(uid,serverid)
+)engine = InnoDb default charset utf8;
+```
 
-注意，score 只是用来排序，活动已结束就没用了  
+注意，score 只是用来排序，活动已结束就没用了
 
-##假设测试数据如下：  
-+-------+----------+------------+-------+-------+------------+  
-| uid   | serverid | name       | level | score | time       |  
-+-------+----------+------------+-------+-------+------------+  
-| 20106 |        1 | testname-1 |    90 |  1000 | 1423195618 |  
-| 20107 |        1 | testname-2 |   100 |  1000 | 1423195618 |  
-| 20108 |        1 | testname-3 |    90 |  2000 | 1423195618 |  
-| 20109 |        1 | testname-4 |    90 |  3000 | 1423195618 |  
-| 20110 |        1 | testname-5 |    90 |  3000 | 1423195617 |  
-+-------+----------+------------+-------+-------+------------+  
+#####假设测试数据如下：
 
-策划要求排行榜的规则如下:  
-1、按score 从大到小排序  
-2、如score相等，则time从小到大排序  
-3、如果score 和 time 都相同，则按玩家的level从大到小排  
-4、如果score time level 都相同，则按uid从小到大排序  
-5、如果score time level uid都相同，则按serverid从小到大排序  
+```javascript
++-------+----------+------------+-------+-------+------------+
+| uid   | serverid | name       | level | score | time       |
++-------+----------+------------+-------+-------+------------+
+| 20106 |        1 | testname-1 |    90 |  1000 | 1423195618 |
+| 20107 |        1 | testname-2 |   100 |  1000 | 1423195618 |
+| 20108 |        1 | testname-3 |    90 |  2000 | 1423195618 |
+| 20109 |        1 | testname-4 |    90 |  3000 | 1423195618 |
+| 20110 |        1 | testname-5 |    90 |  3000 | 1423195617 |
++-------+----------+------------+-------+-------+------------+
+```
 
-实现方案:  
+策划要求排行榜的规则如下：  
+ 1、按score 从大到小排序  
+ 2、如score相等，则time从小到大排序  
+ 3、如果score 和 time 都相同，则按玩家的level从大到小排  
+ 4、如果score time level 都相同，则按uid从小到大排序  
+ 5、如果score time level uid都相同，则按serverid从小到大排序
+ 
+实现方案：
 
-方案1、直接用DB的sql实现，sql语句类似如下:  
-select * from t_worldboat_info order by score desc ,time asc ,level desc,uid asc ,serverid asc;  
-+-------+----------+------------+-------+-------+------------+  
-| uid   | serverid | name       | level | score | time       |  
-+-------+----------+------------+-------+-------+------------+  
-| 20110 |        1 | testname-5 |    90 |  3000 | 1423195617 |  
-| 20109 |        1 | testname-4 |    90 |  3000 | 1423195618 |  
-| 20108 |        1 | testname-3 |    90 |  2000 | 1423195618 |  
-| 20107 |        1 | testname-2 |   100 |  1000 | 1423195618 |  
-| 20106 |        1 | testname-1 |    90 |  1000 | 1423195618 |  
-+-------+----------+------------+-------+-------+------------+  
-
-显然这种方式非常的简单，几条sql就能完成排行榜功能，但是这个方案的问题也比较明显，当玩家人数较多（比如3万），活动开始后成千上万个请求瞬间发到服务器，只是排行榜的请求能把DB压垮，且按照策划要求实现的话是无法使用索引的。而且这个表的规模在较大，排序的sql操作非常耗时。因此在玩家人数较多，瞬间请求较大的情况下这种方法不行。
+方案1、直接用DB的sql实现，sql语句类似如下：
+```javascript
+select * from t_worldboat_info order by score desc ,time asc ,level desc,uid asc ,serverid asc ;
++-------+----------+------------+-------+-------+------------+
+| uid   | serverid | name       | level | score | time       |
++-------+----------+------------+-------+-------+------------+
+| 20110 |        1 | testname-5 |    90 |  3000 | 1423195617 |
+| 20109 |        1 | testname-4 |    90 |  3000 | 1423195618 |
+| 20108 |        1 | testname-3 |    90 |  2000 | 1423195618 |
+| 20107 |        1 | testname-2 |   100 |  1000 | 1423195618 |
+| 20106 |        1 | testname-1 |    90 |  1000 | 1423195618 |
++-------+----------+------------+-------+-------+------------+
+```
+显然这种方式非常的简单，几条sql就能完成排行榜功能，但是这个方案的问题也比较明显，当玩家人数较多（比如3万以上），活动开始后成千上万个请求瞬间发到服务器，只是排行榜的请求能把DB压垮，且按照策划要求的sql语句是无法使用索引的。而且这个表的规模在较大，排序sql操作非常耗时。因此在玩家人数较多，瞬间请求较大的情况下这种方法不行。
 
 方案2：分库和分表，注意到这个功能的特殊性，玩家是按房间分配的，我们可以按房间建表，在把这些表分散在多个库里面。每个表的规模就几百，即使不用索引操作也能很快完成，且压力分散到了多个DB，理论上只要DB机器够多，是一定能满足功能需要的。但是这种方案依赖DB机器，分库的策略也不好定，很可能出现某些库负载高某些库负载低，而且应用层的代码编写和线上服务部署也很麻烦。
 
@@ -61,32 +67,34 @@ select * from t_worldboat_info order by score desc ,time asc ,level desc,uid asc
 方案4：使用第三方服务，该服务能避免上述三种方案的问题，快速的提供排序服务,也就是本文的ersort排序服务。
 
 
-##特色
-    1) 采用erlang编写，erlang天然的进程模型避免了使用锁，无需考虑串化问题
-    2) 提供一个proxy客户端，屏保远程服务器，向应用层提供的接口非常简单（使用例子是php写的）
-    3) 采用json作为数据交换，只要满足json格式的需求任何语言都可使用
-    4) 提供按字段的排序服务，满足灵活的排行榜需求
+##特色：
+   1) 采用erlang编写，erlang天然的进程模型避免了使用锁，无需考虑串化问题  
+   2) 提供一个proxy客户端，屏保远程服务器，向应用层提供的接口非常简单（使用例子是php写的  
+   3) 采用json作为数据交换，只要满足json格式的需求任何语言都可使用  
+   4) 提供按字段的排序服务，满足灵活的排行榜需求  
    
 
 ##消息格式
 
-  其他语言和esort通过json通信，消息格式为 4字节的消息头 + json 消息体
+  其他语言和esort通过json通信，消息格式为 4字节的消息头 + json编码的消息体
 
 ##使用的第三方库：
-    json解析库：https://github.com/tonyg/erlang-rfc4627
-	日志库：https://github.com/qingliangcn/mslog.git
-	这两个库都已经集成到了代码里，使用的时候直接make工程即可
+
+   json解析库：https://github.com/tonyg/erlang-rfc4627  
+   日志库：https://github.com/qingliangcn/mslog.git   
+   这两个库都已经集成到了工程里，使用的时候直接make工程即可
 	
 ##架构
-esort的架构分为两个部分：
-1、esort_server ，核心排序服务器，部署在远程机器上
+esort的架构分为两个部分：  
+1、esort_server ，核心排序服务器，部署在远程机器上  
 2、esort_proxy，是应用层和esort_server 沟通的桥梁，esort_proxy直接部署在应用层所在的机器上（比如php-fpm的机器上，php直接跟esort_proxy通信），
-   esort_proxy转发应用层的消息到esort_server，server处理完请求后把结果返回给esort_proxy，在由esort_proxy返回给应用层。
+   esort_proxy转发应用层的消息到esort_server，server处理完请求后把结果返回给esort_proxy，再由esort_proxy返回给应用层。
 
 
 
 ##目前提供的接口：
-		%%启动并初始化排序服务器
+
+	%%启动并初始化排序服务器
         {init,{"Sortkey","PrimaryKey","SortPriority","TimeOut"}},
         %%将玩家信息更新或者插入到排序列表
         {update,{"Sortkey","Val"}},
@@ -115,7 +123,9 @@ esort的架构分为两个部分：
 
 1、先安装erlang环境，最简单的办法是去erlang官网下载源码（目前为17.4）：
 
-   http://www.erlang.org/download/otp_src_17.4.tar.gz,解压之后：
+   http://www.erlang.org/download/otp_src_17.4.tar.gz,
+   
+   解压之后：
 
    ./config
 
@@ -123,7 +133,7 @@ esort的架构分为两个部分：
    
 2、把esort的代码check out 下来，进入代码目录，然后执行 make 即可生成工程
 
-3、修改server.config 和 proxy.config 的端口，目前server用的是7091 proxy用的7090，根据你自己机器的情况修改
+3、修改server.config 和 proxy.config 的端口，目前server用的是7091 proxy用的7090，根据你自   己机器的情况修改
 
 4、启动server，在代码目录下执行：
    sh start_server.sh
@@ -136,3 +146,5 @@ esort的架构分为两个部分：
 
 ##TODO
 压力测试尚未完成
+
+
