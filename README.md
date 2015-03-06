@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS `t_worldboat_info`(
 注意，score 只是用来排序，活动一结束就没用了
 
 ####假设测试数据如下:  
-
 ```javascript
 +-------+----------+------------+-------+-------+------------+
 | uid   | serverid | name       | level | score | time       |
