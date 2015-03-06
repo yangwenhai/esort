@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `t_worldboat_info`(
 )engine = InnoDb default charset utf8;
 ```
 
-注意，score 只是用来排序，活动已结束就没用了
+注意，score 只是用来排序，活动一结束就没用了
 
 #####假设测试数据如下：
 
