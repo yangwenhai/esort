@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `t_worldboat_info`(
  4、如果score time level 都相同，则按uid从小到大排序  
  5、如果score time level uid都相同，则按serverid从小到大排序
  
-实现方案：
+####实现方案：
 
 方案1、直接用DB的sql实现，sql语句类似如下：
 ```javascript
@@ -94,7 +94,7 @@ esort的架构分为两个部分：
 
 ##目前提供的接口：
 
-	%%启动并初始化排序服务器
+ 	  %%启动并初始化排序服务器
         {init,{"Sortkey","PrimaryKey","SortPriority","TimeOut"}},
         %%将玩家信息更新或者插入到排序列表
         {update,{"Sortkey","Val"}},
